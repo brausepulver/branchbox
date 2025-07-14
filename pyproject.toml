@@ -1,0 +1,64 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "branchbox"
+version = "0.1.0"
+description = "Containerized development environments with git branches"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "branchbox Contributors"},
+]
+keywords = ["development", "containers", "git", "branches", "worktree"]
+classifiers = [
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Version Control :: Git",
+    "Topic :: System :: Systems Administration",
+]
+dependencies = [
+    "docker>=6.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=22.0.0",
+    "isort>=5.10.0",
+    "flake8>=4.0.0",
+]
+
+[project.scripts]
+branchbox = "branchbox.cli:main"
+branchx = "branchbox.cli:main"
+branch = "branchbox.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/brausepulver/branchbox"
+Repository = "https://github.com/brausepulver/branchbox.git"
+Issues = "https://github.com/brausepulver/branchbox/issues"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.hatch.build.targets.wheel]
+packages = ["branchbox"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"branchbox/Dockerfile" = "branchbox/Dockerfile"
