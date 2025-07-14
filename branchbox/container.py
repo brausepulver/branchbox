@@ -245,6 +245,37 @@ class ContainerManager:
         except Exception as e:
             self.logger.debug(f"Error creating container: {e}")
             raise
+
+    def _install_dependencies(self, container):
+        """Detect common lock / manifest files and install dependencies."""
+        install_cmds = [
+            # Python
+            ('requirements.txt', 'pip install -r requirements.txt'),
+            ('pyproject.toml', 'uv sync'),
+            # JavaScript
+            ('package-lock.json', 'npm ci'),
+            ('yarn.lock',         'yarn install --immutable'),
+            ('pnpm-lock.yaml',    'pnpm install --frozen-lockfile'),
+        ]
+
+        for filename, cmd in install_cmds:
+            repo_file = f"{self.workspace_dir}/repo/{filename}"
+            self.logger.debug(f"Looking for {filename}…")
+
+            # test-for-file and run install in separate steps for clearer logs
+            if container.exec_run(f"test -f {repo_file}", user="developer").exit_code != 0:
+                self.logger.debug(f"{filename} not found.")
+                continue
+
+            self.logger.debug(f"{filename} found. Running: {cmd}")
+            result = container.exec_run(f"bash -lc '{cmd}'", user="developer", workdir=f"{self.workspace_dir}/repo")
+
+            if result.exit_code == 0:
+                self.logger.debug(f"Installed dependencies via {filename} successfully.")
+            else:
+                err = result.output.decode()
+                self.logger.error(f"Dependency installation failed using {filename}:\n{err}")
+                raise Exception(f"Dependency installation failed ({filename})")
     
     def _setup_repo_in_container(self, container, repo_path_or_url, branch_name, is_remote):
         """Set up the git repository inside the container"""
@@ -259,8 +290,8 @@ class ContainerManager:
             # Switch to the desired branch
             if branch_name != "main":
                 self.logger.debug(f"Switching to branch: {branch_name}")
-                branch_cmd = f"cd {self.workspace_dir}/repo && git checkout -b {branch_name} || git checkout {branch_name}"
-                container.exec_run(branch_cmd, user='developer')
+                branch_cmd = f"git checkout -b {branch_name} || git checkout {branch_name}"
+                container.exec_run(branch_cmd, user='developer', workdir=f"{self.workspace_dir}/repo")
         else:
             self.logger.debug("Cloning repository from host...")
             git_safe_dir_cmd = f"sudo git config --system --add safe.directory '*'"
@@ -274,8 +305,10 @@ class ContainerManager:
             
             # Create and switch to new branch
             self.logger.debug(f"Creating branch: {branch_name}")
-            branch_cmd = f"cd {self.workspace_dir}/repo && git checkout -b {branch_name}"
-            container.exec_run(branch_cmd, user='developer')
+            branch_cmd = f"git checkout -b {branch_name}"
+            container.exec_run(branch_cmd, user='developer', workdir=f"{self.workspace_dir}/repo")
+
+        self._install_dependencies(container)
     
     def _generate_vscode_folder_uri(self, container_name: str):
         """Generate a VS Code folder URI for the container"""
@@ -291,22 +324,7 @@ class ContainerManager:
             subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except Exception as e:
             self.logger.debug(f"Could not open VS Code automatically: {e}")
-    
-    def _attach_to_container(self, container_name):
-        """Attach to a running container with claude-code"""
-        try:
-            # Use docker exec to start claude-code in interactive mode
-            cmd = [
-                'docker', 'exec', '-it', 
-                '-w', f'{self.workspace_dir}/repo',
-                container_name, 
-                'claude-code'
-            ]
-            subprocess.run(cmd)
-        except KeyboardInterrupt:
-            self.logger.debug(f"\nDetached from {container_name}")
-        except Exception as e:
-            raise Exception(f"Error attaching to container: {e}")
+
     
     def list_containers(self):
         """List all branchbox containers"""
@@ -320,8 +338,8 @@ class ContainerManager:
                 self.logger.debug("No branchbox containers found.")
                 return
             
-            self.logger.debug(f"{'Name':<35} {'Repository':<25} {'Branch':<20} {'Status':<10}")
-            self.logger.debug("-" * 90)
+            print(f"{'Name':<35} {'Repository':<25} {'Branch':<20} {'Status':<10}")
+            print("-" * 90)
             
             for container in containers:
                 labels = container.labels
@@ -329,13 +347,13 @@ class ContainerManager:
                 branch = labels.get('branchbox.branch_name', 'unknown')
                 status = container.status
                 
-                self.logger.debug(f"{container.name:<35} {repo_name:<25} {branch:<20} {status:<10}")
+                print(f"{container.name:<35} {repo_name:<25} {branch:<20} {status:<10}")
                 
         except Exception as e:
             raise Exception(f"Error listing containers: {e}")
     
     def attach_claude(self, container_name):
-        """Start container and attach claude-code"""
+        """Start container and attach Claude Code"""
         resolved_name = self._resolve_container_name(container_name)
         try:
             container = self.docker_client.containers.get(resolved_name)
@@ -345,9 +363,21 @@ class ContainerManager:
                 self.logger.debug(f"Starting container {resolved_name}...")
                 container.start()
             
-            self.logger.debug(f"Starting claude-code in {resolved_name}...")
-            self.logger.debug("Use /exit to quit claude-code and detach from the container.")
-            self._attach_to_container(resolved_name)
+            self.logger.debug(f"Starting Claude Code in {resolved_name}...")
+            self.logger.debug("Use /exit to quit Claude Code and detach from the container.")
+
+            try:
+                # Use docker exec to start Claude Code in interactive mode
+                cmd = [
+                    'docker', 'exec', '-it', 
+                    '-w', f'{self.workspace_dir}/repo',
+                    '-u', 'developer',
+                    resolved_name, 
+                    'bash', '-lc', 'claude'
+                ]
+                subprocess.run(cmd)
+            except KeyboardInterrupt:
+                self.logger.debug(f"\nDetached from {resolved_name}")
             
         except docker.errors.NotFound:
             raise Exception(f"Container {resolved_name} not found.")
