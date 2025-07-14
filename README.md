@@ -1,6 +1,8 @@
 # branchbox
 
-Containerized development environments with git branches for isolated coding sessions.
+Launch isolated containers for feature branches at light speed.
+
+Automatically installs tools, dependencies and Claude Code in a feature container. Opens VS Code for you.
 
 ## Installation
 
