@@ -56,7 +56,7 @@ class ContainerManager:
         
         # Start container if needed
         if was_stopped:
-            self.logger.debug(f"Starting container {resolved_name}...")
+            self.logger.info(f"Starting container {resolved_name}...")
             container.start()
         
         try:
@@ -107,7 +107,7 @@ class ContainerManager:
             self.logger.debug(f"Using existing image: {image_tag}")
             return image_tag
         
-        self.logger.debug(f"Building base image: {image_tag}")
+        self.logger.info(f"Building base image: {image_tag}")
         dockerfile_content = dockerfile_path.read_text()
         
         dockerfile_fileobj = io.BytesIO(dockerfile_content.encode('utf-8'))
@@ -128,7 +128,7 @@ class ContainerManager:
         
         for log in logs:
             if 'stream' in log:
-                self.logger.debug(log['stream'].rstrip())
+                self.logger.info(log['stream'].rstrip())
             elif 'error' in log:
                 self.logger.error(f"ERROR: {log['error']}")
                 raise Exception(f"Build failed: {log['error']}")
@@ -267,7 +267,7 @@ class ContainerManager:
                 self.logger.debug(f"{filename} not found.")
                 continue
 
-            self.logger.debug(f"{filename} found. Running: {cmd}")
+            self.logger.info(f"{filename} found. Running: {cmd}")
             result = container.exec_run(f"bash -lc '{cmd}'", user="developer", workdir=f"{self.workspace_dir}/repo")
 
             if result.exit_code == 0:
@@ -319,12 +319,11 @@ class ContainerManager:
         folder_uri = self._generate_vscode_folder_uri(container_name)
 
         try:
-            self.logger.debug("Opening VS Code...")
+            self.logger.debug("Launching VSCode...")
             cmd = ['code', '--folder-uri', folder_uri]
             subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except Exception as e:
-            self.logger.debug(f"Could not open VS Code automatically: {e}")
-
+            self.logger.warning(f"Could not open VS Code automatically: {e}")
     
     def list_containers(self):
         """List all branchbox containers"""
@@ -360,10 +359,10 @@ class ContainerManager:
             
             # Start container if it's stopped
             if container.status != 'running':
-                self.logger.debug(f"Starting container {resolved_name}...")
+                self.logger.info(f"Starting container {resolved_name}...")
                 container.start()
             
-            self.logger.debug(f"Starting Claude Code in {resolved_name}...")
+            self.logger.debug(f"Launching Claude Code...")
             self.logger.debug("Use /exit to quit Claude Code and detach from the container.")
 
             try:
@@ -392,7 +391,7 @@ class ContainerManager:
             
             # Start container if it's stopped
             if container.status != 'running':
-                self.logger.debug(f"Starting container {resolved_name}...")
+                self.logger.info(f"Starting container {resolved_name}...")
                 container.start()
             
             self._open_vscode(resolved_name)
