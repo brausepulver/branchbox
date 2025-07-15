@@ -1,47 +1,51 @@
 # branchbox
 
-Launch isolated containers for feature branches at light speed.
+Small tool to launch isolated containers for Claude Code at light speed.
 
-Automatically installs tools, dependencies and Claude Code in a feature container. Opens VS Code for you.
+Automatically:
+- Clones your repo
+- Installs tools, dependencies & Claude Code
+- Creates a branch (without touching your repo)
+- Opens VSCode
 
 ## Installation
 
 ```bash
-# With uv (recommended)
-uv tool install branchbox
+# With uv
+uv tool install git@github.com:brausepulver/branchbox.git
 
 # With pipx
-pipx install branchbox
+pipx install git@github.com:brausepulver/branchbox.git
 ```
 
 ## Usage
 
 ```bash
-# Create environment from remote repo
-branchbox https://github.com/user/repo.git feature-branch
+# Create container from local repo
+branchbox create ./my-project feature-branch
 
-# Create from local repo
-branchbox ./my-project feature-branch
+# Create from remote repo
+branchbox create https://github.com/user/repo.git feature-branch
 
 # Open VS Code in container
-branchbox code repo.branch
+branchbox code repo-branch
 
 # Launch Claude Code in container
-branchbox claude repo.branch
+branchbox claude repo-branch
 
-# Run git commands interactively
-branchbox commit repo.branch status
-branchbox commit repo.branch add .
-branchbox commit repo.branch commit -m "changes"
+# Run git commands
+branchbox git repo-branch status
+branchbox git repo-branch add .
+branchbox git repo-branch commit -m "changes"
 
-# Push changes to remote
-branchbox push repo.branch
+# Push changes to local repo or remote
+branchbox push repo-branch
 
 # Container management
 branchbox ls
-branchbox start repo.branch
-branchbox stop repo.branch
-branchbox rm repo.branch
+branchbox start repo-branch
+branchbox stop repo-branch
+branchbox rm repo-branch
 ```
 
-Each command creates an isolated Docker container with your repository, branch, and development tools ready to go.
+Containers are named branchbox-repo-branch. Branchbox also accepts repo-branch format.
