@@ -3,9 +3,10 @@
 Small tool to launch isolated containers for Claude Code at light speed.
 
 Automatically:
-- Clones your repo
+- Creates a container
 - Installs tools, dependencies & Claude Code
-- Creates a branch (without touching your repo)
+- Clones your repo
+- Creates a branch (without touching your original repo)
 - Opens VSCode
 
 ## Installation
@@ -38,7 +39,7 @@ branchbox git repo-branch status
 branchbox git repo-branch add .
 branchbox git repo-branch commit -m "changes"
 
-# Push changes to local repo or remote
+# Sync changes back to local repo or remote
 branchbox push repo-branch
 
 # Container management
